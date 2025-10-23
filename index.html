@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SMP Negeri 5 Banda Aceh — Keterlambatan Siswa</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="logo.png" alt="logo" class="logo" onerror="this.style.display='none'">
+        <div>
+          <h1>SMP Negeri 5 Banda Aceh</h1>
+          <div class="subtitle">Aplikasi Keterlambatan Siswa (Offline)</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnBackup" class="btn ghost small">Backup JSON</button>
+        <input id="fileBackup" type="file" accept="application/json" style="display:none">
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-grid">
+    <!-- Form & list -->
+    <section class="card">
+      <h2>Catat Keterlambatan</h2>
+      <div class="form-row">
+        <label>Pilih Kelas</label>
+        <select id="selectClassForInput"><option value="">-- Pilih Kelas --</option></select>
+      </div>
+      <div class="form-row">
+        <label>Nama Siswa</label>
+        <select id="studentSelect"><option value="">-- Pilih Siswa --</option></select>
+      </div>
+      <div class="form-row-inline">
+        <div><label>Tanggal (otomatis)</label><input id="tanggal" type="date" readonly></div>
+        <div><label>Jam (otomatis)</label><input id="jam" type="time" readonly></div>
+      </div>
+      <div class="form-row">
+        <label>Alasan</label>
+        <input id="alasan" placeholder="Alasan keterlambatan..." />
+      </div>
+      <div class="form-actions">
+        <button id="saveLateness" class="btn">Simpan</button>
+        <button id="exportMonthlyCsv" class="btn green">Download Rekap Bulanan (CSV)</button>
+        <button id="downloadPdf" class="btn">Download PDF Ringkasan</button>
+      </div>
+
+      <hr>
+
+      <h3>Daftar Keterlambatan</h3>
+      <div class="filters">
+        <input id="searchQ" placeholder="Cari nama atau alasan..." />
+        <select id="filterKelas"><option value="">Semua Kelas</option></select>
+        <input id="fromDate" type="date" />
+        <input id="toDate" type="date" />
+        <button id="btnFilter" class="btn ghost small">Filter</button>
+        <button id="btnResetFilter" class="btn ghost small">Reset</button>
+        <button id="btnExportCsv" class="btn small">Export CSV</button>
+      </div>
+      <div id="latenessTable" class="table-wrap"></div>
+    </section>
+
+    <!-- Students & import -->
+    <aside class="card side-card">
+      <h3>Data Siswa</h3>
+      <textarea id="pasteBox" placeholder="Tempel daftar siswa di sini (contoh: Siti Nur Aisyah 7A)"></textarea>
+      <div class="row">
+        <button id="btnProcessPaste" class="btn">Import Siswa</button>
+        <button id="btnClearStudents" class="btn ghost">Hapus Semua</button>
+      </div>
+      <div id="classSummary" class="summary"></div>
+      <div class="class-list-wrap" id="classList"></div>
+    </aside>
+
+    <!-- Statistik -->
+    <section class="card wide-card">
+      <h3>Statistik</h3>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h4>Persentase Keterlambatan per Kelas</h4>
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div class="stat-card">
+          <h4>Keterlambatan per Bulan (Jumlah)</h4>
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>© <span id="year"></span> SMP Negeri 5 Banda Aceh</div>
+      <div>Dikembangkan oleh <strong>Arisalwin, S.Pd</strong></div>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
