@@ -1,7 +1,7 @@
 console.log("✅ script.js aktif!");
 // === SMP Negeri 5 Banda Aceh — Keterlambatan Online ===
 // v9 — Integrasi Google Sheets + perbaikan tampilan data siswa + loading info
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwFQkuNpXPoB8V_imz0HZft70m1puvcRyw2qIDWDe4WMN9215tbNf6ccIhzEVTY3dOR/exec';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwZUJk2sRag2cO6z8ayYqOGt-co--VWz0oWskTzsMaHCRLgSkxtjPdLc-MxnxG4AlZA/exec';
 
 // LocalStorage backup (cadangan offline)
 const KEY_STUDENTS = 'lts_v9_students';
@@ -306,6 +306,7 @@ async function initial() {
   await loadStudentsFromSheet();
 }
 initial();
+
 
 
 
