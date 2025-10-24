@@ -1,7 +1,8 @@
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbwSZgcR9ms0XdgOSsQ7bjNts45N3wD6fhUlg5AY4bQHrY7FBkitnDNpmJ6IKquhMqpl/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwZf6EgGnKNUQeax6nCwV9PVAmm4NvoBfpn1mXTKFU2BUWPZut0NqNl8EmSJcAsq34X/exec";
 
-// Data penyimpanan sementara di browser
+// Data sementara di browser
 let lateness = [];
+let students = [];
 
 // Format tanggal (YYYY-MM-DD)
 function getTodayDate() {
@@ -9,112 +10,103 @@ function getTodayDate() {
   return now.toISOString().split("T")[0];
 }
 
-// 🔹 Ambil data siswa dan keterlambatan dari Google Sheet
+// 🔹 Ambil data siswa & keterlambatan dari Google Sheet
 async function loadStudents() {
   try {
-    const res = await fetch(SHEET_URL);
-    const data = await res.json();
+    // Ambil data siswa
+    const resSiswa = await fetch(`${SHEET_URL}?type=siswa`);
+    const dataSiswa = await resSiswa.json();
+    students = dataSiswa.siswa || [];
 
-    // Pisahkan data siswa dan keterlambatan
-    const students = data.siswa || [];
-    const latenessData = data.keterlambatan || [];
+    // Ambil data keterlambatan
+    const resKeterlambatan = await fetch(`${SHEET_URL}?type=riwayat`);
+    const dataKeterlambatan = await resKeterlambatan.json();
+    lateness = dataKeterlambatan.keterlambatan || [];
 
-    // Filter hanya data hari ini
-    const today = getTodayDate();
-    lateness = latenessData.filter(d => d.timestamp.startsWith(today));
-
-    // Isi dropdown kelas
-    const kelasSelect = document.getElementById("kelas");
-    const namaSelect = document.getElementById("nama");
-
-    // Ambil kelas unik
-    const kelasList = [...new Set(students.map(s => s.kelas))].sort();
-    kelasSelect.innerHTML = '<option value="">-- Pilih Kelas --</option>' +
-      kelasList.map(k => `<option value="${k}">${k}</option>`).join("");
-
-    // Update nama saat kelas berubah
-    kelasSelect.addEventListener("change", () => {
-      const selectedKelas = kelasSelect.value;
-      const filtered = students.filter(s => s.kelas === selectedKelas);
-      namaSelect.innerHTML = '<option value="">-- Pilih Siswa --</option>' +
-        filtered.map(s => `<option value="${s.nama}">${s.nama}</option>`).join("");
-    });
-
+    renderClassOptions();
     renderTable();
+
     console.log("✅ Data siswa & keterlambatan berhasil dimuat.");
   } catch (err) {
     console.error("❌ Gagal memuat data:", err);
-    showToast("⚠️ Gagal memuat data online, gunakan data lokal.");
+    alert("Gagal memuat data siswa, periksa koneksi atau izin akses Apps Script.");
   }
 }
 
-// 🔹 Kirim data keterlambatan baru ke Google Sheet
-async function sendLateness() {
-  const kelas = document.getElementById("kelas").value;
-  const nama = document.getElementById("nama").value;
-  const alasan = document.getElementById("alasan").value.trim();
-  const jam = new Date().toTimeString().slice(0, 5);
+// 🔹 Isi dropdown kelas dan siswa
+function renderClassOptions() {
+  const kelasSelect = document.getElementById("kelasSelect");
+  const namaSelect = document.getElementById("namaSelect");
 
-  if (!kelas || !nama || !alasan) {
-    showToast("⚠️ Lengkapi semua data terlebih dahulu!");
+  if (!kelasSelect || !namaSelect) return;
+
+  // Ambil daftar kelas unik
+  const kelasList = [...new Set(students.map(s => s.kelas))];
+  kelasSelect.innerHTML = `<option value="">-- Pilih Kelas --</option>` + 
+    kelasList.map(k => `<option value="${k}">${k}</option>`).join("");
+
+  kelasSelect.addEventListener("change", () => {
+    const selectedKelas = kelasSelect.value;
+    const siswaKelas = students.filter(s => s.kelas === selectedKelas);
+
+    namaSelect.innerHTML = `<option value="">-- Pilih Siswa --</option>` + 
+      siswaKelas.map(s => `<option value="${s.nama}">${s.nama}</option>`).join("");
+  });
+}
+
+// 🔹 Kirim data keterlambatan ke Google Sheet
+async function sendLateness() {
+  const kelas = document.getElementById("kelasSelect").value;
+  const nama = document.getElementById("namaSelect").value;
+  const alasan = document.getElementById("alasan").value.trim();
+
+  if (!kelas || !nama) {
+    alert("Pilih kelas dan nama siswa terlebih dahulu!");
     return;
   }
 
-  const record = { kelas, nama, alasan, jam };
-
   try {
-    await fetch(SHEET_URL, {
-      method: "POST",
-      body: JSON.stringify(record),
-      headers: { "Content-Type": "application/json" }
-    });
+    const res = await fetch(`${SHEET_URL}?type=keterlambatan&kelas=${encodeURIComponent(kelas)}&nama=${encodeURIComponent(nama)}&alasan=${encodeURIComponent(alasan)}`);
+    const data = await res.json();
 
-    // Tambah ke tampilan tanpa reload
-    lateness.push({
-      nama,
-      kelas,
-      jam,
-      alasan,
-      timestamp: getTodayDate()
-    });
-    renderTable();
-    showToast("✅ Data berhasil disimpan!");
+    if (data.status === "success") {
+      alert("✅ Data keterlambatan berhasil disimpan!");
+      loadStudents(); // Refresh data setelah simpan
+    } else {
+      alert("❌ Gagal menyimpan data: " + data.message);
+    }
   } catch (err) {
-    console.error("❌ Gagal kirim data:", err);
-    showToast("❌ Gagal menyimpan data ke Sheet!");
+    console.error("Error:", err);
+    alert("Terjadi kesalahan saat menyimpan data.");
   }
 }
 
-// 🔹 Render tabel data keterlambatan hari ini
+// 🔹 Render tabel riwayat keterlambatan hari ini
 function renderTable() {
   const tbody = document.getElementById("latenessTable");
-  if (!lateness.length) {
+  if (!tbody) return;
+
+  const today = getTodayDate();
+  const todayData = lateness.filter(d => String(d.jam).length > 0);
+
+  if (todayData.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada data hari ini</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = lateness.map(r => `
+  tbody.innerHTML = todayData.map(r => `
     <tr>
       <td>${r.nama}</td>
       <td>${r.kelas}</td>
       <td>${r.jam}</td>
-      <td>${r.alasan}</td>
+      <td>${r.alasan || "-"}</td>
     </tr>
   `).join("");
 }
 
-// 🔹 Tampilkan pesan notifikasi
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 4000);
-}
-
-// Jalankan saat halaman dibuka
+// 🔹 Jalankan saat halaman dibuka
 document.addEventListener("DOMContentLoaded", () => {
   loadStudents();
   document.getElementById("simpanBtn").addEventListener("click", sendLateness);
-  console.log("🟢 Aplikasi keterlambatan aktif");
+  console.log("🚀 Aplikasi keterlambatan aktif");
 });
-
