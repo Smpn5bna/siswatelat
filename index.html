@@ -3,39 +3,148 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aplikasi Keterlambatan SMPN 5 Banda Aceh</title>
+  <title>Keterlambatan Siswa SMPN 5 Banda Aceh</title>
   <style>
-    body { font-family: Arial, sans-serif; background:#f2f8ff; margin:0; padding:0; }
-    .container { max-width:700px; margin:30px auto; background:white; border-radius:10px; padding:20px; box-shadow:0 0 10px #ccc; }
-    h1 { text-align:center; color:#0078d7; }
-    select, input, button { width:100%; padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
-    button { background:#0078d7; color:white; cursor:pointer; }
-    table { width:100%; border-collapse:collapse; margin-top:15px; }
-    th, td { border:1px solid #ccc; padding:8px; text-align:left; }
-    th { background:#e6f0ff; }
-    .toast { position:fixed; bottom:20px; right:20px; background:#0078d7; color:white; padding:10px 15px; border-radius:6px; opacity:0; transition:opacity 0.3s; }
-    .toast.show { opacity:1; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #eaf3ff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+    }
+
+    h1 {
+      text-align: center;
+      color: #0078d7;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      background-color: #0078d7;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #005fa3;
+    }
+
+    h2 {
+      margin-top: 30px;
+      color: #0078d7;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #0078d7;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    /* Notifikasi (toast) */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0078d7;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.4s;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Keterlambatan Siswa SMPN 5 Banda Aceh</h1>
-    <label>Kelas</label>
-    <select id="kelasSelect"><option value="">-- Pilih Kelas --</option></select>
-    <label>Nama Siswa</label>
-    <select id="namaSelect"><option value="">-- Pilih Siswa --</option></select>
-    <label>Alasan</label>
+
+    <label for="kelas">Kelas</label>
+    <select id="kelas">
+      <option value="">-- Pilih Kelas --</option>
+    </select>
+
+    <label for="nama">Nama Siswa</label>
+    <select id="nama">
+      <option value="">-- Pilih Siswa --</option>
+    </select>
+
+    <label for="alasan">Alasan</label>
     <input type="text" id="alasan" placeholder="Tulis alasan keterlambatan...">
+
     <button id="simpanBtn">Simpan</button>
 
-    <h2>Daftar Keterlambatan</h2>
+    <h2>Daftar Keterlambatan Hari Ini</h2>
     <table>
-      <thead><tr><th>Nama</th><th>Kelas</th><th>Jam</th><th>Alasan</th></tr></thead>
-      <tbody id="latenessTable"><tr><td colspan="4" style="text-align:center;">Belum ada data</td></tr></tbody>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Kelas</th>
+          <th>Jam</th>
+          <th>Alasan</th>
+        </tr>
+      </thead>
+      <tbody id="latenessTable">
+        <tr>
+          <td colspan="4" style="text-align:center;">Belum ada data hari ini</td>
+        </tr>
+      </tbody>
     </table>
   </div>
 
   <div id="toast" class="toast"></div>
+
   <script src="script.js"></script>
 </body>
 </html>
