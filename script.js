@@ -1,97 +1,119 @@
-// === SMPN 5 Banda Aceh ===
-// Integrasi Website dengan Google Sheet
+// URL Web App Google Apps Script kamu
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwZf6EgGnKNUQeax6nCwV9PVAmm4NvoBfpn1mXTKFU2BUWPZut0NqNl8EmSJcAsq34X/exec";
 
-const SHEET_API_URL = "https://cors-anywhere.herokuapp.com/https://script.google.com/macros/s/AKfycbwZf6EgGnKNUQeax6nCwV9PVAmm4NvoBfpn1mXTKFU2BUWPZut0NqNl8EmSJcAsq34X/exec";
-
-let students = [];
 let lateness = [];
+let students = [];
 
-// 🔹 Ambil daftar siswa dari sheet “Siswa”
+// ====================== FUNGSI UTAMA ======================
+
+// Ambil daftar siswa dari Sheet
 async function loadStudents() {
   try {
     const res = await fetch(`${SHEET_API_URL}?type=siswa`);
-    const data = await res.json();
-    if (!data.length) throw new Error("Data kosong");
-    students = data;
-    populateSelects();
-    showToast("✅ Data siswa dimuat dari Google Sheet");
+    students = await res.json();
+
+    // Isi dropdown kelas
+    const kelasSet = [...new Set(students.map(s => s.kelas))].sort();
+    const kelasSelect = document.getElementById("kelas");
+    kelasSelect.innerHTML = `<option value="">-- Pilih Kelas --</option>` +
+      kelasSet.map(k => `<option value="${k}">${k}</option>`).join("");
+
+    // Event ketika kelas dipilih
+    kelasSelect.addEventListener("change", () => {
+      const selected = kelasSelect.value;
+      const siswaSelect = document.getElementById("nama");
+      const filtered = students.filter(s => s.kelas === selected);
+
+      siswaSelect.innerHTML = `<option value="">-- Pilih Siswa --</option>` +
+        filtered.map(s => `<option value="${s.nama}">${s.nama}</option>`).join("");
+    });
   } catch (err) {
-    console.error("Gagal muat siswa:", err);
-    showToast("⚠️ Tidak bisa ambil data online, cek Apps Script");
+    console.error("Gagal memuat data siswa:", err);
+    showToast("⚠️ Gagal memuat data siswa online, pakai data lokal.");
   }
 }
 
-// 🔹 Isi dropdown kelas dan siswa
-function populateSelects() {
-  const kelasSelect = document.getElementById("kelasSelect");
-  const namaSelect = document.getElementById("namaSelect");
+// Ambil data keterlambatan dari Sheet
+async function loadLatenessFromSheet() {
+  try {
+    const res = await fetch(`${SHEET_API_URL}?type=keterlambatan`);
+    const data = await res.json();
 
-  const kelasList = [...new Set(students.map(s => s.kelas))].sort();
-  kelasSelect.innerHTML = `<option value="">-- Pilih Kelas --</option>` + kelasList.map(k => `<option>${k}</option>`).join("");
-
-  kelasSelect.addEventListener("change", () => {
-    const sel = kelasSelect.value;
-    const filtered = students.filter(s => s.kelas === sel);
-    namaSelect.innerHTML = `<option value="">-- Pilih Siswa --</option>` + filtered.map(s => `<option>${s.nama}</option>`).join("");
-  });
+    if (Array.isArray(data)) {
+      lateness = data;
+      renderTable();
+    }
+  } catch (err) {
+    console.error("Gagal memuat data keterlambatan:", err);
+  }
 }
 
-// 🔹 Simpan keterlambatan ke Sheet
+// Kirim data keterlambatan baru ke Sheet
 async function sendLateness() {
-  const kelas = document.getElementById("kelasSelect").value;
-  const nama = document.getElementById("namaSelect").value;
-  const alasan = document.getElementById("alasan").value;
-  if (!kelas || !nama) return showToast("⚠️ Pilih kelas dan nama dulu.");
+  const kelas = document.getElementById("kelas").value;
+  const nama = document.getElementById("nama").value;
+  const alasan = document.getElementById("alasan").value.trim();
+  const jam = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
-  const now = new Date();
-  const jam = now.toTimeString().slice(0,5);
-  const rec = { kelas, nama, jam, alasan };
+  if (!kelas || !nama) {
+    showToast("⚠️ Pilih kelas dan nama siswa!");
+    return;
+  }
 
-  lateness.unshift(rec);
-  renderTable();
+  const record = { kelas, nama, jam, alasan };
 
   try {
     await fetch(SHEET_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "keterlambatan", ...rec })
+      body: JSON.stringify({ type: "keterlambatan", ...record }),
     });
-    showToast("✅ Data tersimpan di Google Sheet");
+
+    // Tambahkan ke tampilan langsung
+    lateness.unshift(record);
+    renderTable();
+    showToast("✅ Data keterlambatan tersimpan!");
   } catch (err) {
-    console.error(err);
-    showToast("⚠️ Gagal kirim ke Google Sheet");
+    console.error("Gagal kirim data:", err);
+    showToast("❌ Gagal menyimpan ke Sheet!");
   }
 }
 
-// 🔹 Render tabel
+// ====================== RENDER TABEL ======================
 function renderTable() {
-  const tbody = document.getElementById("latenessTable");
-  if (!lateness.length) {
+  const tbody = document.querySelector("#latenessTable tbody");
+  if (!tbody) return;
+
+  if (lateness.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada data</td></tr>`;
     return;
   }
-  tbody.innerHTML = lateness.map(r => `
-    <tr>
-      <td>${r.nama}</td>
-      <td>${r.kelas}</td>
-      <td>${r.jam}</td>
-      <td>${r.alasan || "-"}</td>
-    </tr>
-  `).join("");
+
+  tbody.innerHTML = lateness
+    .map(r => `
+      <tr>
+        <td>${r.nama}</td>
+        <td>${r.kelas}</td>
+        <td>${r.jam}</td>
+        <td>${r.alasan || "-"}</td>
+      </tr>
+    `)
+    .join("");
 }
 
-// 🔹 Notifikasi (toast)
+// ====================== NOTIFIKASI (TOAST) ======================
 function showToast(msg) {
   const t = document.getElementById("toast");
+  if (!t) return;
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 4000);
 }
 
-// Jalankan saat web dibuka
+// ====================== SAAT HALAMAN DIBUKA ======================
 document.addEventListener("DOMContentLoaded", () => {
-  loadStudents();
+  loadStudents();            // ambil data siswa dari Sheet
+  loadLatenessFromSheet();   // ambil data keterlambatan dari Sheet
   document.getElementById("simpanBtn").addEventListener("click", sendLateness);
+  console.log("✅ Aplikasi keterlambatan aktif");
 });
-
-
