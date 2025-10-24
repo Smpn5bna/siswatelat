@@ -1,7 +1,7 @@
 // === SMPN 5 Banda Aceh ===
 // Integrasi Website dengan Google Sheet
 
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwJV9PyrzKLDFzUqIjvNtP5PWZqBBGzxY3lCJel1q6u_18hQIPF1VttyfejrYsiAXMv/exec";
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbwZf6EgGnKNUQeax6nCwV9PVAmm4NvoBfpn1mXTKFU2BUWPZut0NqNl8EmSJcAsq34X/exec";
 
 let students = [];
 let lateness = [];
@@ -93,3 +93,4 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStudents();
   document.getElementById("simpanBtn").addEventListener("click", sendLateness);
 });
+
