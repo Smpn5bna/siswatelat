@@ -1,117 +1,48 @@
-// === KONFIGURASI ===
-// Ganti URL ini dengan URL Web App milikmu dari Google Apps Script (yang /exec)
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbzNUkWcbmS0ZLegTfhqonDWYaN0ExP3-zPzUCjhHuxZEBX9mFHhx0RTV7lVMHYTT2qa/exec";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keterlambatan Siswa SMPN 5 Banda Aceh</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Keterlambatan Siswa SMPN 5 Banda Aceh</h2>
 
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Aplikasi keterlambatan aktif");
-  await loadStudents();
-  await loadKeterlambatanHariIni();
+    <div class="form-container">
+      <label for="kelas">Kelas</label>
+      <select id="kelas">
+        <option value="">-- Pilih Kelas --</option>
+      </select>
 
-  document.getElementById("btnSimpan").addEventListener("click", simpanData);
-});
+      <label for="nama">Nama Siswa</label>
+      <select id="nama">
+        <option value="">-- Pilih Siswa --</option>
+      </select>
 
-// === Fungsi ambil data siswa dari Google Sheet ===
-async function loadStudents() {
-  try {
-    const res = await fetch(`${SHEET_URL}?type=siswa`);
-    if (!res.ok) throw new Error("Gagal ambil data siswa");
-    const data = await res.json();
+      <label for="alasan">Alasan</label>
+      <input type="text" id="alasan" placeholder="Tulis alasan keterlambatan...">
 
-    console.log("Data siswa berhasil dimuat:", data);
-    isiDropdownKelas(data.siswa);
-  } catch (err) {
-    console.error("Gagal memuat data:", err);
-    alert("Gagal memuat data siswa, periksa koneksi atau izin akses Apps Script.");
-  }
-}
+      <button id="btnSimpan">Simpan</button>
+    </div>
 
-// === Fungsi isi dropdown kelas & siswa ===
-function isiDropdownKelas(dataSiswa) {
-  const kelasSet = [...new Set(dataSiswa.map(s => s.kelas))].sort();
-  const selectKelas = document.getElementById("kelas");
-  const selectSiswa = document.getElementById("nama");
+    <h3>Daftar Keterlambatan Hari Ini</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Kelas</th>
+          <th>Jam</th>
+          <th>Alasan</th>
+        </tr>
+      </thead>
+      <tbody id="tabelData">
+        <tr><td colspan="4">Belum ada data hari ini</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-  selectKelas.innerHTML = `<option value="">-- Pilih Kelas --</option>`;
-  kelasSet.forEach(k => {
-    selectKelas.innerHTML += `<option value="${k}">${k}</option>`;
-  });
-
-  selectKelas.addEventListener("change", () => {
-    const kelasDipilih = selectKelas.value;
-    const siswaFiltered = dataSiswa.filter(s => s.kelas === kelasDipilih);
-
-    selectSiswa.innerHTML = `<option value="">-- Pilih Siswa --</option>`;
-    siswaFiltered.forEach(s => {
-      selectSiswa.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
-    });
-  });
-}
-
-// === Fungsi simpan data keterlambatan ===
-async function simpanData() {
-  const kelas = document.getElementById("kelas").value;
-  const nama = document.getElementById("nama").value;
-  const alasan = document.getElementById("alasan").value.trim();
-
-  if (!kelas || !nama || !alasan) {
-    alert("Harap isi semua kolom!");
-    return;
-  }
-
-  const data = { kelas, nama, alasan };
-
-  try {
-    const res = await fetch(SHEET_URL, {
-      method: "POST",
-      mode: "cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    const result = await res.json();
-    if (result.success) {
-      alert("✅ Data keterlambatan berhasil disimpan!");
-      await loadKeterlambatanHariIni();
-    } else {
-      alert("❌ Gagal menyimpan data: " + result.message);
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Terjadi kesalahan koneksi ke server.");
-  }
-}
-
-// === Fungsi ambil data keterlambatan hari ini ===
-async function loadKeterlambatanHariIni() {
-  try {
-    const res = await fetch(`${SHEET_URL}?type=keterlambatan`);
-    if (!res.ok) throw new Error("Gagal ambil data keterlambatan");
-    const data = await res.json();
-
-    const tbody = document.querySelector("#tabelData tbody");
-    tbody.innerHTML = "";
-
-    const today = new Date().toISOString().slice(0, 10);
-    const hariIni = data.keterlambatan.filter(d =>
-      d.timestamp.includes(today)
-    );
-
-    if (hariIni.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada data hari ini</td></tr>`;
-      return;
-    }
-
-    hariIni.forEach((d, i) => {
-      const row = `<tr>
-        <td>${i + 1}</td>
-        <td>${d.nama}</td>
-        <td>${d.kelas}</td>
-        <td>${d.jam}</td>
-        <td>${d.alasan}</td>
-      </tr>`;
-      tbody.innerHTML += row;
-    });
-  } catch (err) {
-    console.error("Gagal memuat data keterlambatan:", err);
-  }
-}
+  <script src="script.js"></script>
+</body>
+</html>
