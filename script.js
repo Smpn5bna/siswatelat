@@ -1,7 +1,7 @@
 // === SMP Negeri 5 Banda Aceh — Keterlambatan Siswa v11 ===
 // Integrasi penuh Google Sheets + cadangan offline
 
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzhIIyni4EXQMMthH0mvDQH1dDCzNZT8ojiP8tBzII2n-cU9FIUTeDBJ1wZQQE91k63/exec';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwVNALTgQqHnXowGk3Q0gS72422lQVyScX4MWllsl6-4E-c5Ze9vT9LLbx84pEczGMN/exec';
 // Backup offline
 const KEY_STUDENTS = 'lts_v11_students';
 const KEY_LATE = 'lts_v11_late';
@@ -113,5 +113,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStudentsFromSheet();
   console.log("✅ SISWATELAT v11 aktif");
 });
+
 
 
