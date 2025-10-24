@@ -33,14 +33,18 @@ async function loadStudents() {
   }
 }
 
-// Ambil data keterlambatan dari Sheet
+// Ambil data keterlambatan dari Sheet (hanya hari ini)
 async function loadLatenessFromSheet() {
   try {
     const res = await fetch(`${SHEET_API_URL}?type=keterlambatan`);
     const data = await res.json();
 
     if (Array.isArray(data)) {
-      lateness = data;
+      const today = new Date().toLocaleDateString("id-ID");
+      lateness = data.filter(r => {
+        const tgl = new Date(r.timestamp).toLocaleDateString("id-ID");
+        return tgl === today;
+      });
       renderTable();
     }
   } catch (err) {
@@ -60,7 +64,13 @@ async function sendLateness() {
     return;
   }
 
-  const record = { kelas, nama, jam, alasan };
+  const record = {
+    timestamp: new Date().toISOString(),
+    kelas,
+    nama,
+    jam,
+    alasan
+  };
 
   try {
     await fetch(SHEET_API_URL, {
@@ -85,7 +95,7 @@ function renderTable() {
   if (!tbody) return;
 
   if (lateness.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada data</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada data hari ini</td></tr>`;
     return;
   }
 
@@ -113,7 +123,7 @@ function showToast(msg) {
 // ====================== SAAT HALAMAN DIBUKA ======================
 document.addEventListener("DOMContentLoaded", () => {
   loadStudents();            // ambil data siswa dari Sheet
-  loadLatenessFromSheet();   // ambil data keterlambatan dari Sheet
+  loadLatenessFromSheet();   // ambil data keterlambatan hari ini
   document.getElementById("simpanBtn").addEventListener("click", sendLateness);
   console.log("✅ Aplikasi keterlambatan aktif");
 });
