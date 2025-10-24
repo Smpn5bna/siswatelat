@@ -1,108 +1,117 @@
-// === URL APPS SCRIPT ===
-// Gunakan proxy CORS Anywhere agar bisa diakses dari GitHub Pages
+// === KONFIGURASI ===
+// Ganti URL ini dengan URL Web App milikmu dari Google Apps Script (yang /exec)
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzNUkWcbmS0ZLegTfhqonDWYaN0ExP3-zPzUCjhHuxZEBX9mFHhx0RTV7lVMHYTT2qa/exec";
 
-// Data penyimpanan sementara di browser
-let lateness = [];
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("Aplikasi keterlambatan aktif");
+  await loadStudents();
+  await loadKeterlambatanHariIni();
 
-// Format tanggal (YYYY-MM-DD)
-function getTodayDate() {
-  const now = new Date();
-  return now.toISOString().split("T")[0];
-}
+  document.getElementById("btnSimpan").addEventListener("click", simpanData);
+});
 
-// Ambil data siswa dan keterlambatan dari Google Sheet
+// === Fungsi ambil data siswa dari Google Sheet ===
 async function loadStudents() {
   try {
-    const res = await fetch(SHEET_URL);
+    const res = await fetch(`${SHEET_URL}?type=siswa`);
+    if (!res.ok) throw new Error("Gagal ambil data siswa");
     const data = await res.json();
 
-    const students = data.siswa || [];
-    const latenessData = data.keterlambatan || [];
-
-    // Filter hanya data hari ini
-    const today = getTodayDate();
-    lateness = latenessData.filter(d => d.timestamp.startsWith(today));
-
-    // Isi dropdown kelas
-    const kelasSelect = document.getElementById("kelasSelect");
-    const nameSelect = document.getElementById("namaSelect");
-
-    const uniqueClasses = [...new Set(students.map(s => s.kelas))];
-    kelasSelect.innerHTML = `<option value="">-- Pilih Kelas --</option>` +
-      uniqueClasses.map(k => `<option value="${k}">${k}</option>`).join("");
-
-    // Update dropdown nama berdasarkan kelas
-    kelasSelect.addEventListener("change", () => {
-      const selectedClass = kelasSelect.value;
-      const filteredStudents = students.filter(s => s.kelas === selectedClass);
-      nameSelect.innerHTML = `<option value="">-- Pilih Siswa --</option>` +
-        filteredStudents.map(s => `<option value="${s.nama}">${s.nama}</option>`).join("");
-    });
-
-    renderTable();
-    console.log("✅ Data siswa & keterlambatan berhasil dimuat.");
-  } catch (error) {
-    console.error("❌ Gagal memuat data:", error);
+    console.log("Data siswa berhasil dimuat:", data);
+    isiDropdownKelas(data.siswa);
+  } catch (err) {
+    console.error("Gagal memuat data:", err);
     alert("Gagal memuat data siswa, periksa koneksi atau izin akses Apps Script.");
   }
 }
 
-// Simpan keterlambatan
-async function sendLateness() {
-  const kelas = document.getElementById("kelasSelect").value;
-  const nama = document.getElementById("namaSelect").value;
-  const alasan = document.getElementById("alasan").value;
+// === Fungsi isi dropdown kelas & siswa ===
+function isiDropdownKelas(dataSiswa) {
+  const kelasSet = [...new Set(dataSiswa.map(s => s.kelas))].sort();
+  const selectKelas = document.getElementById("kelas");
+  const selectSiswa = document.getElementById("nama");
+
+  selectKelas.innerHTML = `<option value="">-- Pilih Kelas --</option>`;
+  kelasSet.forEach(k => {
+    selectKelas.innerHTML += `<option value="${k}">${k}</option>`;
+  });
+
+  selectKelas.addEventListener("change", () => {
+    const kelasDipilih = selectKelas.value;
+    const siswaFiltered = dataSiswa.filter(s => s.kelas === kelasDipilih);
+
+    selectSiswa.innerHTML = `<option value="">-- Pilih Siswa --</option>`;
+    siswaFiltered.forEach(s => {
+      selectSiswa.innerHTML += `<option value="${s.nama}">${s.nama}</option>`;
+    });
+  });
+}
+
+// === Fungsi simpan data keterlambatan ===
+async function simpanData() {
+  const kelas = document.getElementById("kelas").value;
+  const nama = document.getElementById("nama").value;
+  const alasan = document.getElementById("alasan").value.trim();
 
   if (!kelas || !nama || !alasan) {
-    alert("Semua kolom harus diisi!");
+    alert("Harap isi semua kolom!");
     return;
   }
 
-  const now = new Date();
-  const jam = `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
-
-  const body = new FormData();
-  body.append("kelas", kelas);
-  body.append("nama", nama);
-  body.append("jam", jam);
-  body.append("alasan", alasan);
+  const data = { kelas, nama, alasan };
 
   try {
-    const res = await fetch(SHEET_URL, { method: "POST", body });
-    const result = await res.text();
-    console.log("✅ Data tersimpan:", result);
-    alert("Data keterlambatan berhasil disimpan!");
-    loadStudents();
-  } catch (error) {
-    console.error("❌ Gagal mengirim data:", error);
-    alert("Gagal mengirim data. Coba lagi.");
+    const res = await fetch(SHEET_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      alert("✅ Data keterlambatan berhasil disimpan!");
+      await loadKeterlambatanHariIni();
+    } else {
+      alert("❌ Gagal menyimpan data: " + result.message);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Terjadi kesalahan koneksi ke server.");
   }
 }
 
-// Tampilkan tabel keterlambatan
-function renderTable() {
-  const tbody = document.getElementById("latenessTable");
-  if (!lateness.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada data hari ini</td></tr>`;
-    return;
+// === Fungsi ambil data keterlambatan hari ini ===
+async function loadKeterlambatanHariIni() {
+  try {
+    const res = await fetch(`${SHEET_URL}?type=keterlambatan`);
+    if (!res.ok) throw new Error("Gagal ambil data keterlambatan");
+    const data = await res.json();
+
+    const tbody = document.querySelector("#tabelData tbody");
+    tbody.innerHTML = "";
+
+    const today = new Date().toISOString().slice(0, 10);
+    const hariIni = data.keterlambatan.filter(d =>
+      d.timestamp.includes(today)
+    );
+
+    if (hariIni.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada data hari ini</td></tr>`;
+      return;
+    }
+
+    hariIni.forEach((d, i) => {
+      const row = `<tr>
+        <td>${i + 1}</td>
+        <td>${d.nama}</td>
+        <td>${d.kelas}</td>
+        <td>${d.jam}</td>
+        <td>${d.alasan}</td>
+      </tr>`;
+      tbody.innerHTML += row;
+    });
+  } catch (err) {
+    console.error("Gagal memuat data keterlambatan:", err);
   }
-
-  tbody.innerHTML = lateness.map(r => `
-    <tr>
-      <td>${r.nama}</td>
-      <td>${r.kelas}</td>
-      <td>${r.jam}</td>
-      <td>${r.alasan || "-"}</td>
-    </tr>
-  `).join("");
 }
-
-// Jalankan saat web dibuka
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("📱 Aplikasi keterlambatan aktif");
-  loadStudents();
-  document.getElementById("simpanBtn").addEventListener("click", sendLateness);
-});
-
-
