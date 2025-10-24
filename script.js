@@ -1,118 +1,130 @@
-// === SMP Negeri 5 Banda Aceh — Keterlambatan Siswa v11 ===
-// Integrasi penuh Google Sheets + cadangan offline
+// === SMP Negeri 5 Banda Aceh - Keterlambatan Online ===
+// Versi fix: Integrasi Google Sheets + CORS support
 
-const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwu_bOHVWnxtaWSAQBDjXhkms5OY0a_gf7fxTCA01mOYRaVjY-0PTz5yT4oglUN5Ew-/exec';
-// Backup offline
-const KEY_STUDENTS = 'lts_v11_students';
-const KEY_LATE = 'lts_v11_late';
+const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzvd-13ErTBxngUo_zcTDTkFKwE4KVkz5VcysHc6ZkQ5PaJhwiqMMNlAUkPx-9LEKhW/exec';
+
+// LocalStorage backup (offline mode)
+const KEY_STUDENTS = 'lts_students';
+const KEY_LATE = 'lts_late';
 
 let students = JSON.parse(localStorage.getItem(KEY_STUDENTS) || '[]');
 let lateness = JSON.parse(localStorage.getItem(KEY_LATE) || '[]');
 
-// Simpan lokal
-function saveLocal() {
+// Simpan ke LocalStorage
+function saveStudents() {
   localStorage.setItem(KEY_STUDENTS, JSON.stringify(students));
+}
+function saveLateness() {
   localStorage.setItem(KEY_LATE, JSON.stringify(lateness));
 }
 
-function toast(msg) {
-  console.log(msg);
-  const box = document.getElementById("toast");
-  if (box) {
-    box.innerText = msg;
-    box.classList.remove("hidden");
-    setTimeout(() => box.classList.add("hidden"), 3000);
-  } else {
-    alert(msg);
-  }
-}
-
-// Ambil data siswa dari Sheet
+// === Load data siswa dari Google Sheet ===
 async function loadStudentsFromSheet() {
   try {
-    const res = await fetch(SHEET_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "siswa" })
-    });
-
-    students = await res.json();
-    saveLocal();
-    toast(`✅ ${students.length} data siswa dimuat dari Sheet`);
+    const res = await fetch(SHEET_API_URL + '?type=siswa');
+    const data = await res.json();
+    if (!data || !data.length) throw new Error('Data siswa kosong');
+    students = data;
+    saveStudents();
+    renderStudentSummary();
+    console.log('✅ Data siswa dimuat dari Sheet');
   } catch (err) {
-    console.error("Gagal muat siswa:", err);
-    toast("⚠️ Gagal memuat data siswa online, pakai data lokal.");
+    console.error('❌ Gagal muat siswa:', err);
+    toast('⚠️ Gagal memuat data siswa online, pakai data lokal.');
+    renderStudentSummary();
   }
 }
 
-// Kirim keterlambatan ke Sheet
+// === Kirim data keterlambatan ke Google Sheet ===
 async function sendLatenessToSheet(rec) {
   try {
-    const payload = {
-      type: "keterlambatan",
-      kelas: rec.kelas,
-      nama: rec.nama,
-      jam: rec.jam,
-      alasan: rec.alasan
-    };
-
     await fetch(SHEET_API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'keterlambatan',
+        kelas: rec.klass,
+        nama: rec.name,
+        jam: rec.time,
+        alasan: rec.reason
+      }),
+      headers: { 'Content-Type': 'application/json' }
     });
-
-    console.log("Terkirim ke sheet:", payload);
-    toast("✅ Data terkirim ke Google Sheet");
+    console.log('✅ Data keterlambatan terkirim ke Google Sheet');
   } catch (err) {
-    console.error("Gagal kirim:", err);
-    toast("⚠️ Gagal kirim ke Google Sheet");
+    console.error('❌ Gagal kirim keterlambatan:', err);
   }
 }
 
-// Simpan data dari form
-function simpanData() {
-  const nama = document.getElementById("nama").value.trim();
-  const kelas = document.getElementById("kelas").value.trim();
-  const alasan = document.getElementById("alasan").value.trim();
-  const jam = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-
-  if (!nama || !kelas) return toast("⚠️ Nama dan Kelas wajib diisi");
-
-  const rec = { nama, kelas, jam, alasan };
-  lateness.unshift(rec);
-  saveLocal();
-  renderTable();
-  sendLatenessToSheet(rec);
+// === Render daftar siswa per kelas ===
+function renderStudentSummary() {
+  const summaryBox = document.getElementById('studentSummary');
+  if (!summaryBox) return;
+  const grouped = {};
+  students.forEach(s => {
+    if (!grouped[s.kelas]) grouped[s.kelas] = 0;
+    grouped[s.kelas]++;
+  });
+  summaryBox.innerHTML = Object.entries(grouped)
+    .map(([kelas, jumlah]) => `<div><b>${kelas}</b>: ${jumlah} siswa</div>`)
+    .join('');
 }
 
-// Render tabel
-function renderTable() {
-  const tbody = document.getElementById("latenessTable");
-  if (!tbody) return;
+// === Tambah data keterlambatan ===
+async function addLateness(kelas, nama, alasan) {
+  const now = new Date();
+  const rec = {
+    klass: kelas,
+    name: nama,
+    date: now.toISOString().slice(0, 10),
+    time: now.toTimeString().slice(0, 5),
+    reason: alasan || ''
+  };
+  lateness.unshift(rec);
+  saveLateness();
+  renderLatenessTable();
+  await sendLatenessToSheet(rec);
+  toast('✅ Data tersimpan (lokal + online)');
+}
 
+// === Render tabel keterlambatan ===
+function renderLatenessTable() {
+  const tbody = document.getElementById('latenessTable');
+  if (!tbody) return;
   if (!lateness.length) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada data</td></tr>`;
     return;
   }
-
-  tbody.innerHTML = lateness.map(r => `
+  tbody.innerHTML = lateness
+    .map(
+      r => `
     <tr>
-      <td>${r.nama}</td>
-      <td>${r.kelas}</td>
-      <td>${r.jam}</td>
-      <td>${r.alasan || "-"}</td>
-    </tr>
-  `).join("");
+      <td>${r.name}</td>
+      <td>${r.klass}</td>
+      <td>${r.date} ${r.time}</td>
+      <td>${r.reason || '-'}</td>
+    </tr>`
+    )
+    .join('');
 }
 
-// Saat halaman dibuka
-document.addEventListener("DOMContentLoaded", () => {
-  renderTable();
+// === Toast notification ===
+function toast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 4000);
+}
+
+// === Saat halaman dibuka ===
+document.addEventListener('DOMContentLoaded', () => {
+  renderLatenessTable();
+  renderStudentSummary();
   loadStudentsFromSheet();
-  console.log("✅ SISWATELAT v11 aktif");
+  console.log('✅ SISWATELAT aktif');
 });
+
+
 
 
 
