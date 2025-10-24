@@ -1,4 +1,4 @@
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbwZf6EgGnKNUQeax6nCwV9PVAmm4NvoBfpn1mXTKFU2BUWPZut0NqNl8EmSJcAsq34X/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwSZgcR9ms0XdgOSsQ7bjNts45N3wD6fhUlg5AY4bQHrY7FBkitnDNpmJ6IKquhMqpl/exec";
 
 // Data penyimpanan sementara di browser
 let lateness = [];
@@ -117,3 +117,4 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("simpanBtn").addEventListener("click", sendLateness);
   console.log("🟢 Aplikasi keterlambatan aktif");
 });
+
