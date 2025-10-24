@@ -1,6 +1,6 @@
 // === URL APPS SCRIPT ===
 // Gunakan proxy CORS Anywhere agar bisa diakses dari GitHub Pages
-const SHEET_URL = "https://cors-anywhere.herokuapp.com/https://script.google.com/macros/s/AKfycbwDw5rQv3rBZ1GE6J9lkOK7_BR9m5sTRYfIUFXzGg7B31lkK--QH3qmWO-dfOZtJPm5/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbw89VW-hIpGF2c1LWowJK5ZDlzIqS2sRpOA8q-ZO8n0TXWOm68uRGxePHWfSk1gts99/exec";
 
 // Data penyimpanan sementara di browser
 let lateness = [];
@@ -104,3 +104,4 @@ document.addEventListener("DOMContentLoaded", () => {
   loadStudents();
   document.getElementById("simpanBtn").addEventListener("click", sendLateness);
 });
+
